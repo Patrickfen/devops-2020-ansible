@@ -1,0 +1,43 @@
+---
+- hosts: all
+  gather_facts: False
+  tasks:
+  - name: Bootstrap a host without python2 installed
+    raw: test -e /usr/bin/python || (apt -y update && apt install -y python)
+    become: yes
+
+  - name: Update apt-cache and install packages
+    action: >
+      apt name={{ item }} state=latest update_cache=yes
+    with_items:
+      - "docker.io"
+      - "apt-transport-https"
+    become: yes
+
+  - name: Add apt-key for packages
+    apt_key:
+      url: "https://packages.cloud.google.com/apt/doc/apt-key.gpg"
+      state: present
+    become: yes
+
+  - name: Add kubernetes
+    apt_repository:
+      repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+      state: present
+    become: yes
+
+  - name: Add kubernetes modules
+    action: >
+      apt name={{ item }} state=latest update_cache=yes
+    with_items:
+      - "kubelet"
+      - "kubeadm"
+      - "kubernetes-cni"
+    become: yes
+
+  - name: Start docker
+    shell: systemctl enable docker.service
+    become: yes
+
+  - name: Setup docker permissions
+    shell: sudo usermod -aG docker $USER

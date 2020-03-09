@@ -1,0 +1,16 @@
+---
+- hosts: worker
+  tasks:
+  - name: Join master
+    shell: kubeadm join 172.31.43.212:6443 --token zwu4xa.buhcerxt1jr7ay78     --discovery-token-ca-cert-hash sha256:6ed808cb8fbf4c36408f3962abf99ba11969cd13e54070bb2259640bc08563da --v=5
+  become: true
+
+- hosts: k8-master
+  tasks:
+  - name: Check join status
+    shell: kubectl get nodes
+    register: command_output
+
+  - name: Show status
+    debug:
+      msg: "Node status {{ command_output.stdout }}"

@@ -1,0 +1,40 @@
+---
+- hosts: k8-master
+  tasks:
+  - name: Setup kubeadm
+    shell: kubeadm init
+    become: yes
+
+  - name: Make kube directory
+    file:
+      path: "/home/{{ ansible_ssh_user }}/.kube"
+      state: directory
+      mode: '0755'
+
+  - name: Copy config
+    copy:
+      src: /etc/kubernetes/admin.conf
+      remote_src: true
+      dest: /home/{{ ansible_ssh_user }}/.kube/config
+      owner: "{{ ansible_ssh_user }}"
+      group: "{{ ansible_ssh_user }}"
+      mode: '0644'
+    become: yes
+
+  - name: Setup bridge
+    shell: sysctl net.bridge.bridge-nf-call-iptables=1
+    become: yes
+
+  - name: Install Weave
+    shell: kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')" --kubeconfig /home/{{ ansible_ssh_user }}/.kube/config
+
+  - name: Give master permission for pods
+    shell: kubectl taint nodes --all node-role.kubernetes.io/master- --kubeconfig /home/{{ ansible_ssh_user }}/.kube/config
+
+  - name: Create join command
+    shell: kubeadm token create --print-join-command --kubeconfig /home/{{ ansible_ssh_user }}/.kube/config
+    register: command_output
+
+  - name: Show command
+    debug:
+      msg: "Join command='{{ command_output.stdout }}'"

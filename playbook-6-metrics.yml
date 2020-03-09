@@ -1,0 +1,17 @@
+---
+- hosts: k8-master
+  tasks:
+  - name: Install zip
+    apt:
+      name: zip
+      state: present
+    become: yes
+
+  - name: Download archive
+    unarchive:
+      src: "https://surfdrive.surf.nl/files/index.php/s/RCxPtHnz1agrY7V/download"
+      dest: "/home/{{ ansible_ssh_user }}"
+      remote_src: yes
+
+  - name: Setup server
+    shell: kubectl create -f ~/kubernetes/
